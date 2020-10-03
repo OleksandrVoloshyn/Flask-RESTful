@@ -11,7 +11,6 @@ class UserResource(Resource):
         schema = UserSchema()
         return schema.dump(users, many=True), 200
 
-    @jwt_required()
     def post(self):
         candidate = request.get_json()
         schema = UserSchema()
@@ -86,15 +85,18 @@ class PetResource(Resource):
     @jwt_required()
     def post(self, owner_id):
         candidate = request.get_json()
-        candidate['owner_id'] = owner_id
+        # candidate['owner_id'] = owner_id
+        owner = OwnerModel.find_by_id(owner_id)
+        if not owner:
+            return {'message': 'user not found'}, 404
         schema = PetSchema()
         errors = schema.validate(candidate)
         if errors:
             return {'massage': errors}, 400
         data = schema.dump(candidate)
-        print(schema.dump(data))
         pet = PetModel(**data)
-        pet.save_to_db()
+        owner.pets.append(pet)
+        owner.save_to_db()
         return {'massage': 'pet has been added'}, 201
 
     @jwt_required()
